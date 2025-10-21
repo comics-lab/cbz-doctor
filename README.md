@@ -11,3 +11,18 @@ pip install -r requirements.txt
 
 ## Action Log
 - 2025-10-19 — Initialized repository skeleton (MIT, Python 3 only).
+
+## Appendix: Directory Structure — cbz-doctor
+
+<!-- BEGIN DIR TREE -->
+```
+cbz-doctor
+├── cbz_doctor
+│   ├── __init__.py
+│   └── cli.py
+├── LICENSE
+├── Makefile
+├── README.md
+└── requirements.txt
+```
+<!-- END DIR TREE -->
