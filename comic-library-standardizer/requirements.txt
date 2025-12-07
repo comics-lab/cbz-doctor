@@ -1,0 +1,21 @@
+# Comic Library Archive Standardizer - Requirements
+# Core Dependencies (Required)
+rarfile==4.0
+
+# Optional Dependencies (Enhanced functionality)
+# Install with: pip install -r requirements.txt --extra-index-url https://pypi.org/simple/
+
+# For faster checksum calculation (optional but recommended)
+xxhash==3.4.1
+
+# For colored console output (optional)
+colorama==0.4.6
+
+# For progress bars during processing (optional)
+tqdm==4.66.1
+
+# For better RAR support on some systems (optional)
+unrar==0.4
+
+# Development dependencies (for testing)
+# pytest==7.4.3
