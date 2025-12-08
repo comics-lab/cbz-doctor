@@ -175,6 +175,11 @@ class ArchiveInfo:
         return self.actual_type == ArchiveType.RAR
     
     def to_dict(self) -> Dict:
+        # Normalize newest_file_date for serialization
+        newest_date_val = self.newest_file_date
+        if isinstance(newest_date_val, datetime):
+            newest_date_val = newest_date_val.timestamp()
+
         return {
             'path': str(self.path),
             'name': self.path.name,
@@ -186,8 +191,8 @@ class ArchiveInfo:
             'needs_conversion': self.needs_conversion,
             'file_count': self.file_count,
             'checksum': self.checksum,
-            'newest_file_date': datetime.fromtimestamp(self.newest_file_date).isoformat() 
-                              if self.newest_file_date else None,
+            'newest_file_date': datetime.fromtimestamp(newest_date_val).isoformat() 
+                              if newest_date_val else None,
             'volume_number': self.volume_number
         }
 
@@ -399,15 +404,21 @@ class ArchiveAnalyzer:
                                     newest_date = file_date
                 except:
                     pass
-            
+
             elif actual_type == ArchiveType.RAR:
                 try:
                     with rarfile.RarFile(file_path, 'r') as rf:
                         file_count = len(rf.namelist())
                         for info in rf.infolist():
                             if info.mtime:
-                                if newest_date is None or info.mtime > newest_date:
-                                    newest_date = info.mtime
+                                # rarfile may return datetime or timestamp; normalize to float seconds
+                                try:
+                                    mtime_ts = info.mtime.timestamp() if hasattr(info.mtime, 'timestamp') else float(info.mtime)
+                                except Exception:
+                                    mtime_ts = None
+                                if mtime_ts is not None:
+                                    if newest_date is None or mtime_ts > newest_date:
+                                        newest_date = mtime_ts
                 except:
                     pass
             
