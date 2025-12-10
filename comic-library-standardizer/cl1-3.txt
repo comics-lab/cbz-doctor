@@ -1,0 +1,4 @@
+Dialog with Codex - 2025-12-10
+- User: Asked if I was ready to resume analysis of comic_library_11.py and had a few questions before we begin.
+- Codex: Confirmed readiness and asked for their questions.
+- User: Asked whether the testing directory needs to be remounted, noted last command `python3 ./comic_library_11.py --directory "testing/Wonder Woman V2 (1987)" --dry-run --workers 12`, and requested saving today's dialog.

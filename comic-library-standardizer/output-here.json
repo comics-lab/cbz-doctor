@@ -1,0 +1,85 @@
+{
+  "summary": {
+    "library_root": "/home/rmleonard/projects/Home Projects/comics-lab/mylar3-test/comicbooks",
+    "timestamp": "2025-12-09T14:30:38.708528",
+    "configuration": {
+      "config_path": "../../mylar3-test/config.ini",
+      "destination_dir": "/home/rmleonard/projects/Home Projects/comics-lab/mylar3-test/comicbooks",
+      "folder_format": "$Publisher/$Series $Type ($Year)",
+      "file_format": "$Series $VolumeN $Annual #$Issue ($monthname $Year)",
+      "backup_files": true,
+      "dry_run": false,
+      "workers": 12,
+      "log_level": "DEBUG",
+      "log_file": null,
+      "report_file": "output-here.txt",
+      "add_comicinfo": true,
+      "overwrite_comicinfo": false
+    },
+    "statistics": {
+      "total_files": 3,
+      "processed_files": 3,
+      "cbz_files": 3,
+      "cbr_files": 0,
+      "misnamed_files": 0,
+      "converted_files": 0,
+      "renamed_files": 0,
+      "deleted_files": 0,
+      "error_files": 0,
+      "metadata_added": 0,
+      "total_size": 203055876,
+      "start_time": 1765319438.6177776,
+      "end_time": 1765319438.7084894,
+      "duration": 0.09071183204650879,
+      "processing_rate": 33.07176067684172,
+      "size_processed_mb": 193.64917373657227
+    },
+    "final_state": {
+      "cbz_files": 3,
+      "cbr_files": 0,
+      "total_archives": 3
+    },
+    "comicinfo_statistics": {
+      "total_archives": 3,
+      "archives_with_series_json": 0,
+      "comicinfo_added": 0,
+      "comicinfo_skipped": 3
+    }
+  },
+  "actions": {
+    "kept": [
+      {
+        "action": "kept",
+        "source": "/home/rmleonard/projects/Home Projects/comics-lab/mylar3-test/comicbooks/Marvel/The Amazing Spider-Man (2025)/The Amazing Spider-Man #003 (July 2025).cbz",
+        "target": null,
+        "reason": "Already in correct format",
+        "details": {},
+        "timestamp": "2025-12-09T14:30:38.708246"
+      },
+      {
+        "action": "kept",
+        "source": "/home/rmleonard/projects/Home Projects/comics-lab/mylar3-test/comicbooks/Marvel/The Amazing Spider-Man (2025)/The Amazing Spider-Man #002 (June 2025).cbz",
+        "target": null,
+        "reason": "Already in correct format",
+        "details": {},
+        "timestamp": "2025-12-09T14:30:38.708323"
+      },
+      {
+        "action": "kept",
+        "source": "/home/rmleonard/projects/Home Projects/comics-lab/mylar3-test/comicbooks/Marvel/The Amazing Spider-Man (2025)/The Amazing Spider-Man #001 (June 2025).cbz",
+        "target": null,
+        "reason": "Already in correct format",
+        "details": {},
+        "timestamp": "2025-12-09T14:30:38.708385"
+      }
+    ]
+  },
+  "duplicates": {},
+  "issues": {
+    "misnamed_files": [],
+    "corrupted_files": [],
+    "duplicate_files": [],
+    "conversion_errors": [],
+    "metadata_errors": []
+  }
+}

@@ -1,9 +1,23 @@
 #!/usr/bin/env python3
 """
+###############################################################################
 Comic Library Archive Standardizer v1.1
 Adds ComicInfo.xml metadata to all CBZ files based on series.json
-"""
-
+###############################################################################
+This script standardizes comic archives in a library by:
+1. Converting all archives to CBZ format (ZIP)
+2. Adding ComicInfo.xml metadata to each CBZ
+3. Renaming files to match the standard format
+4. Organizing files into proper directory structure
+5. Validating the final library structure
+###############################################################################
+Usage:
+python comic_library_standardizer.py --input /path/to/comics --output /path/to/output --workers 4
+###############################################################################
+# Copyright (c) 2024 Comic Library Standardizer Authors
+# Licensed under the MIT License
+###############################################################################
+# """
 import os
 import sys
 import argparse
@@ -18,19 +32,25 @@ import signal
 import csv
 import shutil
 import tempfile
+
 from datetime import datetime
 from pathlib import Path, PurePath
 from typing import Dict, List, Tuple, Optional, Set, Any, Union
 from dataclasses import dataclass, field, asdict
 from enum import Enum, IntEnum
+
 import multiprocessing
 from concurrent.futures import ProcessPoolExecutor, as_completed
+
 import traceback
 from collections import defaultdict, Counter
+
 import fnmatch
 import re
 import xml.etree.ElementTree as ET
-
+"""
+###############################################################################
+"""
 # Constants
 DEFAULT_WORKERS = min(8, multiprocessing.cpu_count())
 VALID_EXTENSIONS = {'.cbz', '.cbr', '.zip', '.rar'}
@@ -39,13 +59,17 @@ CBR_EXTENSION = '.cbr'
 METADATA_FILENAME = "series.json"
 COMICINFO_FILENAME = "ComicInfo.xml"
 CONFIG_FILENAME = "config.ini"
-
+"""
+###############################################################################
+"""
 class ArchiveType(Enum):
     """Detected archive type"""
     ZIP = "zip"
     RAR = "rar"
     UNKNOWN = "unknown"
-
+"""
+###############################################################################
+"""
 class ActionType(Enum):
     """Actions performed on files"""
     RENAMED = "renamed"
@@ -55,7 +79,9 @@ class ActionType(Enum):
     SKIPPED = "skipped"
     ERROR = "error"
     METADATA_ADDED = "metadata_added"
-
+"""
+###############################################################################
+"""
 class ValidationResult(Enum):
     """Validation result"""
     VALID = "valid"
@@ -63,10 +89,13 @@ class ValidationResult(Enum):
     CORRUPTED = "corrupted"
     MISNAMED = "misnamed"
     DUPLICATE = "duplicate"
-
+"""
+###############################################################################
+"""
 @dataclass
 class SeriesMetadata:
     """Series metadata from series.json"""
+    
     name: str
     description: Optional[str] = None
     publisher: Optional[str] = None
@@ -89,7 +118,9 @@ class SeriesMetadata:
     manga: Optional[str] = "No"
     black_and_white: Optional[bool] = False
     format: Optional[str] = "Comic"
-    
+    """
+    ###########################################################################
+    """
     @classmethod
     def from_json(cls, json_path: Path) -> Optional['SeriesMetadata']:
         """Load metadata from JSON file"""
@@ -127,7 +158,9 @@ class SeriesMetadata:
             )
         except (json.JSONDecodeError, IOError, OSError) as e:
             return None
-    
+    """
+    ###########################################################################
+    """
     def validate_archive_name(self, archive_name: str) -> Tuple[bool, Optional[str]]:
         """Check if archive name matches expected pattern"""
         if not self.archive_pattern:
@@ -138,10 +171,14 @@ class SeriesMetadata:
         if re.match(f"^{pattern}$", archive_name):
             return True, None
         return False, f"Archive '{archive_name}' doesn't match pattern '{self.archive_pattern}'"
-    
+    """
+    ###########################################################################
+    """
     def to_dict(self) -> Dict:
         return asdict(self)
-
+"""
+###############################################################################
+"""
 @dataclass
 class ArchiveInfo:
     """Information about an archive file"""
@@ -155,12 +192,16 @@ class ArchiveInfo:
     newest_file_date: Optional[float] = None
     series_metadata: Optional[SeriesMetadata] = None
     volume_number: Optional[int] = None
-    
+    """
+    ###########################################################################
+    """
     @property
     def expected_extension(self) -> str:
         """Get the expected extension based on actual type"""
         return CBZ_EXTENSION if self.actual_type == ArchiveType.ZIP else CBR_EXTENSION
-    
+    """
+    ###########################################################################
+    """
     @property
     def is_misnamed(self) -> bool:
         """Check if file has wrong extension"""
@@ -168,12 +209,16 @@ class ArchiveInfo:
             return False
         expected = self.expected_extension
         return self.path.suffix.lower() != expected
-    
+    """
+    ###########################################################################
+    """
     @property
     def needs_conversion(self) -> bool:
         """Check if file needs conversion (RAR to ZIP)"""
         return self.actual_type == ArchiveType.RAR
-    
+    """
+    ###########################################################################
+    """
     def to_dict(self) -> Dict:
         # Normalize newest_file_date for serialization
         newest_date_val = self.newest_file_date
@@ -195,7 +240,9 @@ class ArchiveInfo:
                               if newest_date_val else None,
             'volume_number': self.volume_number
         }
-
+"""
+###############################################################################
+"""
 @dataclass
 class Action:
     """Action performed on a file"""
@@ -205,7 +252,9 @@ class Action:
     reason: Optional[str] = None
     details: Dict[str, Any] = field(default_factory=dict)
     timestamp: float = field(default_factory=time.time)
-    
+    """
+    ###########################################################################
+    """
     def to_dict(self) -> Dict:
         return {
             'action': self.action_type.value,
@@ -215,7 +264,9 @@ class Action:
             'details': self.details,
             'timestamp': datetime.fromtimestamp(self.timestamp).isoformat()
         }
-
+"""
+###############################################################################
+"""
 @dataclass
 class LibraryStats:
     """Statistics for the library processing"""
@@ -232,10 +283,14 @@ class LibraryStats:
     total_size: int = 0
     start_time: float = field(default_factory=time.time)
     end_time: float = 0
-    
+    """
+    ###########################################################################
+    """
     def duration(self) -> float:
         return (self.end_time or time.time()) - self.start_time
-    
+    """
+    ###########################################################################
+    """
     def to_dict(self) -> Dict:
         return {
             **asdict(self),
@@ -243,10 +298,14 @@ class LibraryStats:
             'processing_rate': self.processed_files / self.duration() if self.duration() > 0 else 0,
             'size_processed_mb': self.total_size / (1024 * 1024)
         }
-
+"""
+###############################################################################
+"""
 class LibraryConfig:
     """Library configuration from config.ini"""
-    
+    """
+    ###########################################################################
+    """
     def __init__(self, config_path: Path):
         self.config_path = config_path
         self.destination_dir: Optional[Path] = None
@@ -260,9 +319,12 @@ class LibraryConfig:
         self.report_file: Optional[Path] = None
         self.add_comicinfo: bool = True
         self.overwrite_comicinfo: bool = False
+        self.skip_checksum: bool = False
         
         self._load_config()
-    
+    """
+    ###########################################################################
+    """
     def _load_config(self):
         """Load configuration from INI file"""
         if not self.config_path.exists():
@@ -286,6 +348,7 @@ class LibraryConfig:
             self.workers = proc.getint('workers', DEFAULT_WORKERS)
             self.add_comicinfo = proc.getboolean('add_comicinfo', True)
             self.overwrite_comicinfo = proc.getboolean('overwrite_comicinfo', False)
+            self.skip_checksum = proc.getboolean('skip_checksum', False)
         
         # Output section
         if 'Output' in config:
@@ -295,7 +358,9 @@ class LibraryConfig:
                 self.log_file = Path(out.get('log_file')).expanduser()
             if 'report_file' in out:
                 self.report_file = Path(out.get('report_file')).expanduser()
-    
+    """
+    ###########################################################################
+    """
     def parse_folder_structure(self, publisher: str, series: str) -> str:
         """Generate folder path based on folder_format"""
         try:
@@ -308,7 +373,9 @@ class LibraryConfig:
         except (KeyError, ValueError):
             # Fallback to default format
             return f"{publisher}/{series}"
-    
+    """
+    ###########################################################################
+    """
     def parse_filename(self, series: str, volume: int, **kwargs) -> str:
         """Generate filename based on file_format"""
         try:
@@ -321,7 +388,9 @@ class LibraryConfig:
         except (KeyError, ValueError):
             # Fallback to default format
             return f"{series} v{volume:02d}"
-    
+    """
+    ###########################################################################
+    """
     def to_dict(self) -> Dict:
         return {
             'config_path': str(self.config_path),
@@ -335,12 +404,17 @@ class LibraryConfig:
             'log_file': str(self.log_file) if self.log_file else None,
             'report_file': str(self.report_file) if self.report_file else None,
             'add_comicinfo': self.add_comicinfo,
-            'overwrite_comicinfo': self.overwrite_comicinfo
+            'overwrite_comicinfo': self.overwrite_comicinfo,
+            'skip_checksum': self.skip_checksum
         }
-
+"""
+###############################################################################
+"""
 class ArchiveAnalyzer:
     """Analyze archive files to determine type and contents"""
-    
+    """
+    ###########################################################################
+    """
     @staticmethod
     def detect_archive_type(file_path: Path) -> ArchiveType:
         """Detect the actual archive type using file signatures"""
@@ -375,9 +449,11 @@ class ArchiveAnalyzer:
             
         except Exception:
             return ArchiveType.UNKNOWN
-    
+    """
+    ###########################################################################
+    """
     @staticmethod
-    def analyze_archive(file_path: Path) -> Optional[ArchiveInfo]:
+    def analyze_archive(file_path: Path, *, skip_checksum: bool = False) -> Optional[ArchiveInfo]:
         """Analyze archive file and return info"""
         try:
             if not file_path.exists():
@@ -424,11 +500,12 @@ class ArchiveAnalyzer:
             
             # Calculate checksum (fast xxhash if available)
             checksum = None
-            try:
-                if actual_type != ArchiveType.UNKNOWN:
-                    checksum = ArchiveAnalyzer.calculate_checksum(file_path)
-            except:
-                pass
+            if not skip_checksum:
+                try:
+                    if actual_type != ArchiveType.UNKNOWN:
+                        checksum = ArchiveAnalyzer.calculate_checksum(file_path)
+                except:
+                    pass
             
             # Try to extract volume number from filename
             volume_number = None
@@ -476,7 +553,9 @@ class ArchiveAnalyzer:
         except Exception as e:
             logging.error(f"Error analyzing {file_path}: {str(e)}")
             return None
-    
+    """
+    ###########################################################################
+    """
     @staticmethod
     def calculate_checksum(file_path: Path, algorithm: str = 'xxh64') -> str:
         """Calculate file checksum"""
@@ -502,7 +581,9 @@ class ArchiveAnalyzer:
             return f"{algorithm}:{hasher.hexdigest()}"
         except Exception:
             return "error"
-    
+    """
+    ###########################################################################
+    """
     @staticmethod
     def compare_archives(archive1: ArchiveInfo, archive2: ArchiveInfo) -> int:
         """
@@ -531,7 +612,9 @@ class ArchiveAnalyzer:
             return 1
         
         return 0  # Tie
-    
+    """
+    ###########################################################################
+    """
     @staticmethod
     def has_comicinfo_xml(zip_path: Path) -> bool:
         """Check if a ZIP file already has ComicInfo.xml"""
@@ -540,7 +623,9 @@ class ArchiveAnalyzer:
                 return COMICINFO_FILENAME in zf.namelist()
         except:
             return False
-    
+    """
+    ###########################################################################
+    """
     @staticmethod
     def read_comicinfo_xml(zip_path: Path) -> Optional[str]:
         """Read ComicInfo.xml from a ZIP file"""
@@ -551,10 +636,30 @@ class ArchiveAnalyzer:
         except:
             pass
         return None
-
+"""
+###############################################################################
+"""
 class ComicInfoGenerator:
     """Generate ComicInfo.xml metadata"""
-    
+    """
+    ###########################################################################
+    """
+    @staticmethod
+    def fetch_external_metadata_stub(archive_info: ArchiveInfo) -> Optional[SeriesMetadata]:
+        """
+        Placeholder for external metadata lookup when no local series.json is present
+        or ComicInfo generation is otherwise disabled. Integrate GCD, Metron cloud,
+        ComicVine/Mylar3 here and return a populated SeriesMetadata. Verify whether
+        both series and issue identifiers are required before writing ComicInfo.xml.
+        """
+        logging.debug(
+            "External metadata stub hit for %s; implement real lookup to populate SeriesMetadata",
+            archive_info.path.name
+        )
+        return None
+    """
+    ###########################################################################
+    """
     @staticmethod
     def generate_comic_info(archive_info: ArchiveInfo, config: LibraryConfig) -> str:
         """Generate ComicInfo.xml content for an archive"""
@@ -640,10 +745,14 @@ class ComicInfoGenerator:
         xml_str = ET.tostring(comic_info, encoding='unicode', method='xml')
         xml_declaration = '<?xml version="1.0" encoding="UTF-8"?>\n'
         return xml_declaration + xml_str
-
+"""
+###############################################################################
+"""
 class ArchiveConverter:
     """Convert RAR archives to ZIP format"""
-    
+    """
+    ###########################################################################
+    """
     @staticmethod
     def convert_rar_to_zip(rar_path: Path, zip_path: Path, comic_info_xml: Optional[str] = None) -> bool:
         """Convert RAR archive to ZIP format"""
@@ -697,7 +806,9 @@ class ArchiveConverter:
                     shutil.rmtree(temp_dir)
                 except:
                     pass
-    
+    """
+    ###########################################################################
+    """
     @staticmethod
     def add_comic_info_to_cbz(cbz_path: Path, comic_info_xml: str, overwrite: bool = False) -> bool:
         """Add or replace ComicInfo.xml in a CBZ file"""
@@ -730,7 +841,9 @@ class ArchiveConverter:
         except Exception as e:
             logging.error(f"Error adding ComicInfo.xml to {cbz_path}: {str(e)}")
             return False
-    
+    """
+    ###########################################################################
+    """
     @staticmethod
     def backup_file(file_path: Path) -> Optional[Path]:
         """Create a backup of a file"""
@@ -746,10 +859,14 @@ class ArchiveConverter:
         except Exception as e:
             logging.error(f"Failed to backup {file_path}: {str(e)}")
             return None
-
+"""
+###############################################################################
+"""
 class ComicLibraryManager:
     """Main class for managing comic library"""
-    
+    """
+    ###########################################################################
+    """
     def __init__(self, config: LibraryConfig):
         self.config = config
         self.library_root = config.destination_dir
@@ -761,7 +878,9 @@ class ComicLibraryManager:
         
         if not self.library_root or not self.library_root.exists():
             raise ValueError(f"Library root directory does not exist: {self.library_root}")
-    
+    """
+    ###########################################################################
+    """
     def _setup_logging(self):
         """Setup logging configuration"""
         self.logger = logging.getLogger('ComicLibraryManager')
@@ -791,7 +910,9 @@ class ComicLibraryManager:
         self.logger.info(f"Dry run: {self.config.dry_run}")
         self.logger.info(f"Workers: {self.config.workers}")
         self.logger.info(f"Add ComicInfo.xml: {self.config.add_comicinfo}")
-    
+    """
+    ###########################################################################
+    """
     def scan_library(self) -> List[ArchiveInfo]:
         """Scan library for all comic archive files"""
         self.logger.info(f"Scanning library at: {self.library_root}")
@@ -813,21 +934,28 @@ class ComicLibraryManager:
         self.logger.info(f"Found {self.stats.total_files} archive files")
         
         return archive_files
-    
+    """
+    ###########################################################################
+    """
     def analyze_files(self, file_paths: List[Path]) -> List[ArchiveInfo]:
         """Analyze files in parallel"""
         self.logger.info(f"Analyzing {len(file_paths)} files...")
         
         archives = []
+        total = len(file_paths)
         
         if self.config.workers > 1 and len(file_paths) > 1:
             # Parallel analysis
             with ProcessPoolExecutor(max_workers=self.config.workers) as executor:
                 future_to_file = {
-                    executor.submit(ArchiveAnalyzer.analyze_archive, file_path): file_path
+                    executor.submit(
+                        ArchiveAnalyzer.analyze_archive,
+                        file_path,
+                        skip_checksum=self.config.skip_checksum
+                    ): file_path
                     for file_path in file_paths
                 }
-                
+                completed = 0
                 for future in as_completed(future_to_file):
                     file_path = future_to_file[future]
                     try:
@@ -835,18 +963,28 @@ class ComicLibraryManager:
                         if archive_info:
                             archives.append(archive_info)
                             self._log_archive_info(archive_info)
+                        completed += 1
+                        if completed % 5 == 0 or completed == total:
+                            self.logger.info(f"[analyze {completed}/{total}] {file_path.name}")
                     except Exception as e:
                         self.logger.error(f"Error analyzing {file_path}: {str(e)}")
         else:
             # Sequential analysis
-            for file_path in file_paths:
-                archive_info = ArchiveAnalyzer.analyze_archive(file_path)
+            for idx, file_path in enumerate(file_paths, start=1):
+                archive_info = ArchiveAnalyzer.analyze_archive(
+                    file_path,
+                    skip_checksum=self.config.skip_checksum
+                )
                 if archive_info:
                     archives.append(archive_info)
                     self._log_archive_info(archive_info)
+                if idx % 5 == 0 or idx == total:
+                    self.logger.info(f"[analyze {idx}/{total}] {file_path.name}")
         
         return archives
-    
+    """
+    ###########################################################################
+    """
     def _log_archive_info(self, archive_info: ArchiveInfo):
         """Log information about an archive"""
         if archive_info.actual_type == ArchiveType.UNKNOWN:
@@ -861,7 +999,9 @@ class ComicLibraryManager:
         # Log metadata availability
         if archive_info.series_metadata:
             self.logger.debug(f"  📄 Has series metadata: {archive_info.series_metadata.name}")
-    
+    """
+    ###########################################################################
+    """
     def find_duplicates(self, archives: List[ArchiveInfo]):
         """Find potential duplicate files (same name, different extensions)"""
         # Group by base name (without extension)
@@ -879,7 +1019,9 @@ class ComicLibraryManager:
                 if len(extensions) > 1:
                     self.duplicate_groups[base_name] = group
                     self.logger.warning(f"Found {len(group)} files with name '{base_name}': {[a.path.name for a in group]}")
-    
+    """
+    ###########################################################################
+    """
     def _get_target_path(self, archive_info: ArchiveInfo) -> Path:
         """Determine target path for an archive"""
         # Extract metadata from filename for folder structure
@@ -916,7 +1058,9 @@ class ComicLibraryManager:
             counter += 1
         
         return target_path
-    
+    """
+    ###########################################################################
+    """
     def _handle_duplicates(self, archive_info: ArchiveInfo, target_path: Path) -> Optional[Tuple[Action, bool]]:
         """Handle duplicate files (same target path)"""
         if target_path.exists():
@@ -954,7 +1098,9 @@ class ComicLibraryManager:
                     ), False)
         
         return None
-    
+    """
+    ###########################################################################
+    """
     def process_archive(self, archive_info: ArchiveInfo) -> List[Action]:
         """Process a single archive file"""
         actions = []
@@ -984,8 +1130,18 @@ class ComicLibraryManager:
             
             # Generate ComicInfo.xml if configured
             comic_info_xml = None
-            if self.config.add_comicinfo and archive_info.series_metadata:
-                comic_info_xml = ComicInfoGenerator.generate_comic_info(archive_info, self.config)
+            if self.config.add_comicinfo:
+                metadata = archive_info.series_metadata
+                if not metadata:
+                    self.logger.debug(
+                        "No local series.json metadata for %s; invoking external metadata stub",
+                        archive_info.path.name
+                    )
+                    metadata = ComicInfoGenerator.fetch_external_metadata_stub(archive_info)
+                    if metadata:
+                        archive_info.series_metadata = metadata
+                if metadata:
+                    comic_info_xml = ComicInfoGenerator.generate_comic_info(archive_info, self.config)
             
             # Check if file needs renaming or conversion
             if archive_info.is_misnamed or archive_info.needs_conversion:
@@ -1136,7 +1292,9 @@ class ComicLibraryManager:
             self.logger.error(f"Error processing {archive_info.path}: {str(e)}")
         
         return actions
-    
+    """
+    ###########################################################################
+    """
     def process_all(self) -> List[Action]:
         """Process all archive files in the library"""
         self.logger.info("Starting library processing...")
@@ -1153,7 +1311,10 @@ class ComicLibraryManager:
         # Process each archive
         all_actions = []
         
-        for archive_info in archives:
+        total = len(archives)
+        for idx, archive_info in enumerate(archives, start=1):
+            if idx % 5 == 0 or idx == 1 or idx == total:
+                self.logger.info(f"[process {idx}/{total}] {archive_info.path.name}")
             actions = self.process_archive(archive_info)
             all_actions.extend(actions)
             
@@ -1196,7 +1357,9 @@ class ComicLibraryManager:
         self.actions = all_actions
         
         return all_actions
-    
+    """
+    ###########################################################################
+    """
     def generate_report(self, output_path: Optional[Path] = None) -> Dict:
         """Generate comprehensive report"""
         if output_path is None and self.config.report_file:
@@ -1252,7 +1415,9 @@ class ComicLibraryManager:
                 self.logger.info(f"JSON report saved to: {output_path.with_suffix('.json')}")
         
         return report
-    
+    """
+    ###########################################################################
+    """
     def _generate_issue_report(self) -> Dict:
         """Generate report of issues found"""
         issues = {
@@ -1285,7 +1450,9 @@ class ComicLibraryManager:
             })
         
         return issues
-    
+    """
+    ###########################################################################
+    """
     def _generate_csv_report(self, output_path: Path, report: Dict):
         """Generate CSV report"""
         with open(output_path, 'w', newline='', encoding='utf-8') as f:
@@ -1333,7 +1500,9 @@ class ComicLibraryManager:
                         action.get('reason', ''),
                         action.get('timestamp', '')
                     ])
-    
+    """
+    ###########################################################################
+    """
     def print_summary(self):
         """Print summary to console"""
         print("\n" + "="*80)
@@ -1387,7 +1556,9 @@ class ComicLibraryManager:
             print(f"\n⚠️  DRY RUN - No files were modified")
         
         print("\n" + "="*80)
-
+"""
+###############################################################################
+"""
 def create_default_config(config_path: Path, library_root: Path):
     """Create a default configuration file"""
     config = configparser.ConfigParser()
@@ -1431,7 +1602,9 @@ def create_default_config(config_path: Path, library_root: Path):
     print("    log_level       = DEBUG, INFO, WARNING, ERROR")
     print("    log_file        = Path to log file")
     print("    report_file     = Path to JSON report file")
-
+"""
+###############################################################################
+"""
 def main():
     """Main entry point"""
     signal.signal(signal.SIGINT, lambda s, f: (print("\n\nInterrupted by user"), sys.exit(1)))
@@ -1506,6 +1679,12 @@ File Processing Rules:
     )
     
     parser.add_argument(
+        '--skip-checksum',
+        action='store_true',
+        help='Skip calculating checksums during analysis (faster, less verification)'
+    )
+    
+    parser.add_argument(
         '-w', '--workers',
         type=int,
         help=f'Override number of worker processes (default: {DEFAULT_WORKERS})'
@@ -1573,6 +1752,9 @@ File Processing Rules:
         if args.overwrite_comicinfo:
             config.overwrite_comicinfo = True
         
+        if args.skip_checksum:
+            config.skip_checksum = True
+        
         if args.workers:
             config.workers = args.workers
         
@@ -1606,6 +1788,13 @@ File Processing Rules:
         if args.log_level == 'DEBUG' or (config and config.log_level == 'DEBUG'):
             traceback.print_exc()
         return 2
-
+"""
+###############################################################################
+"""
 if __name__ == "__main__":
     sys.exit(main())
+"""
+###############################################################################
+# END OF FILE
+###############################################################################
+"""
