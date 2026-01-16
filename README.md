@@ -1,5 +1,11 @@
 # cbz-doctor
 
+## Agent and Logs
+
+- Agent profile: `AGENTS.md`
+- Logs (local-only): `CONVERSATION.md`, `BOOKMARKS.md`, `Action-Log.md` (when present)
+
+
 Validate/repair CBZ archives and ComicInfo.xml; can emit Metron XML.
 
 ## Quickstart
